@@ -1,6 +1,6 @@
 I'm John Heisler, a Communication and Collaboration Administrator with nearly 10 years in IT. I manage about 2,000 users across two hybrid Microsoft 365 tenants, and I write a lot of PowerShell to keep that manageable.
 
-This is a collection of PowerShell scripts that i find useful.
+This is a collection of PowerShell scripts that I find useful.
 
 Many of these have an accompanying blog post on [johnjheisler.net](https://www.johnjheisler.net/)
 
