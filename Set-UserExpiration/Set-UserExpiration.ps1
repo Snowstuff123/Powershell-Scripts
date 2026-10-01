@@ -6,7 +6,7 @@ function Set-UserExpiration {
         .Description
         Sets the AD Account expiration date of provided user. Will cap at 90 days.
 
-        .Parameter Identity
+        .Parameter Identities
         The samaccount name of the AD Account to be set to expire. ValueFromPipeline=$true.
 
         .Parameter Date
@@ -14,11 +14,11 @@ function Set-UserExpiration {
 
         .Example
         # Set JHeisler to expire in 90 days.
-        Set-UserExpiration -Identity JHeisler
+        Set-UserExpiration -Identities JHeisler
 
         .Example
         # Set JHeisler to expire on 10/23/23.
-        Set-UserExpiration -Identity JHeisler -Date 10/23/23
+        Set-UserExpiration -Identities JHeisler -Date 10/23/23
 
     #>
     [CmdletBinding(SupportsShouldProcess)]
@@ -29,7 +29,7 @@ function Set-UserExpiration {
             ValueFromPipeline,
             ValueFromPipelineByPropertyName
         )]
-        [string[]]$Identity,
+        [string[]]$Identities,
 
         [datetime]$Date,
 
@@ -47,7 +47,7 @@ function Set-UserExpiration {
         $DefaultExpirationDate = $MaxDate
     }
     process {
-        foreach ($User in $Identity) {
+        foreach ($User in $Identities) {
             try {
                 $ADUser = Get-ADUser -Identity:$User -Server:$Server -ErrorAction:Stop
 
