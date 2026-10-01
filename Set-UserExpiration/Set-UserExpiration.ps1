@@ -21,41 +21,71 @@ function Set-UserExpiration {
         Set-UserExpiration -Identity JHeisler -Date 10/23/23
 
     #>
-    [CmdletBinding()]
-    param (
-        [Parameter(ValueFromPipeline=$true)]
-        [String[]]
-        $Identity = (Read-Host "Enter Username"),
+    [CmdletBinding(SupportsShouldProcess)]
 
-        [Parameter()]
-        [String]
-        $Date
+    param(
+        [Parameter(
+            Mandatory,
+            ValueFromPipeline,
+            ValueFromPipelineByPropertyName
+        )]
+        [string[]]$Identity,
+
+        [datetime]$Date,
+
+        [string] $Server
     )
-
     begin{
-        $ExpirationDate = (Get-Date).AddDays(90)
-        if ($Date.Length -gt 0) {
-            if((Get-Date "$Date") -le $ExpirationDate){
-                $ExpirationDate = (Get-Date "$Date")
-            }
+        $Today = Get-Date
+        $MaxDate = $Today.AddDays(90)
+        if (
+            $PSBoundParameters.ContainsKey('Date') -and $Date -lt $Today
+        )
+        {
+            throw "Expiration date cannot be in the past."
         }
+        $DefaultExpirationDate = $MaxDate
     }
-    Process{
-        try {
-            $ADUser = Get-ADUser -Identity "$Identity" -ErrorAction Stop
+    process {
+        foreach ($User in $Identity) {
+            try {
+                $ADUser = Get-ADUser -Identity:$User -Server:$Server -ErrorAction:Stop
+
+                $ExpirationDate = if ($PSBoundParameters.ContainsKey('Date')) {
+                    if ($Date -gt $MaxDate.date) {
+                        $MaxDate
+                    }
+                    else {
+                        $Date
+                    }
+                }
+                else {
+                    $DefaultExpirationDate
+                }
+                
+                if ($PSCmdlet.ShouldProcess(
+                    $ADUser.SamAccountName,
+                    "Set expiration date to $ExpirationDate"
+                )) {
+                    Set-ADAccountExpiration -Identity:$ADUser -DateTime:$ExpirationDate -Server:$Server
+                }
+            [PSCustomObject]@{
+                SamAccountName = $ADUser.SamAccountName
+                Name           = $ADUser.Name
+                ExpirationDate = $ExpirationDate
+                Success        = $true
+            }
+            }
+            catch {
+                Write-Error "Failed to set expiration for '$User'. $($_.Exception.Message)"
+                [PSCustomObject]@{
+                    SamAccountName = $User
+                    Name           = $null
+                    ExpirationDate = $null
+                    Success        = $false
+                }
+            }
+
         }
-        catch {
-            Write-Host $Identity " Not Found." -ForegroundColor Red; Break
-        }
-        Set-ADAccountExpiration -Identity $ADUser -DateTime "$ExpirationDate"
-        Write-Host $ADUser.Name " Expiration Date Set: " (w32tm.exe /ntte ((Get-ADUser -Identity $ADUser -Properties("AccountExpires")).AccountExpires))
-        }
-    End{
-        $Identity = $null
-        $Date = $null
-        $ADUser = $null
-        $ExpirationDate = $null
     }
 }
-
-Set-UserExpiration
